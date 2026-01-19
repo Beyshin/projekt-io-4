@@ -7,7 +7,7 @@ let socketInstance = null;
 
 const getSocketInstance = () => {
     if(!socketInstance) {
-        socketInstance = io('https://alexandria-pcz.com/', {
+        socketInstance = io('https://projekt.alexandria-pcz.com', {
             autoConnect: true,
             reconnection: true,
             reconnectionDelay: 1000,
