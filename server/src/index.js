@@ -9,7 +9,7 @@ app.get('/', (req, res) => {
 
 const server = http.createServer(app);
 
-server.listen(3000, '0.0.0.0', () => {
+server.listen(3000, 'https://alexandria-pcz.com', () => {
     console.log("HTTP server is running on port 3000");
 });
 
