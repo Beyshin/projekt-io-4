@@ -9,7 +9,7 @@ import {useSocket} from "../../context/SocketContext";
 function SelectPage() {
     const navigate = useNavigate();
     const socket = useSocket();
-    const [roomId, setRoomId] = useState(null);
+    const [roomId, setRoomId] = useState("");
 
 
     useEffect(() => {
@@ -21,20 +21,26 @@ function SelectPage() {
             }
         })
 
-        socket.on("room-not-found", (data) => {
-            console.log("Nie znaleziono pokoju")
-        })
-    })
+        const handleRoomNotFound = (data) => {
+            console.log("Nie znaleziono pokoju");
+        };
 
-    function joinRoom(roomId){
-        socket.emit("join-room", roomId);
+        socket.on("room-not-found", handleRoomNotFound);
+
+        return () => {
+            socket.off("room-joined", handleRoomJoined);
+            socket.off("room-not-found", handleRoomNotFound);
+        };
+    }, [socket, navigate]);
+
+    function joinRoom(id){
+        if(id) socket.emit("join-room", id);
     }
-
-
 
     return(
         <div className={styles.mainContainer}>
             <h1 className={styles.welcomeText}>welcome, <span className={styles.textLarge}>{localStorage.getItem("username")}</span></h1>
+            
             <div className={styles.selectContainer}>
                 <h1 className={styles.textLarge}>CREATE A ROOM</h1>
                 <div className={styles.buttonContainer}>
@@ -42,17 +48,28 @@ function SelectPage() {
                     <GradientButton label="GUESS A SONG" socket={socket} onClick={() => socket.emit("create-room", {gameType: 'music'})}></GradientButton>
                 </div>
             </div>
+
             <div className={styles.joinContainer}>
                 <h1 className={styles.textMedium}>OR JOIN EXISTING GAME...</h1>
+                
                 <input
                     onKeyDown={(e) =>{
-                    if(e.key === "Enter")
-                        joinRoom(roomId);
+                        if(e.key === "Enter") joinRoom(roomId);
                     }}
                     type="text"
                     className={styles.inputBox}
                     onChange={(e) => setRoomId(e.target.value)}
-                    placeholder="Enter the room code..."/>
+                    value={roomId}
+                    placeholder="Enter the room code..."
+                />
+
+                <div style={{ marginTop: '20px' }}>
+                    <GradientButton 
+                        label="JOIN" 
+                        onClick={() => joinRoom(roomId)} 
+                        style={{ width: "25vh", height: "auto", minHeight: "50px" }}
+                    />
+                </div>
             </div>
 
             <CornerL className={styles.cornerL} />

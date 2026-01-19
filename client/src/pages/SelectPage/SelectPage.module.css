@@ -59,6 +59,7 @@
 
 .buttonContainer{
     display: flex;
+    z-index: 1;
     flex-direction: row;
     width: 100%;
     justify-content: space-evenly;
