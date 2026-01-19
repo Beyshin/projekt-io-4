@@ -72,7 +72,7 @@ function nextRound(io, room) {
 export function StartGameHandler(io, socket, rooms) {
     socket.on("start-game", (roomId) => {
         const room = rooms.find(r => r.id === roomId);
-
+        if (room.gameType !== 'charades') return;
         if (!room) return;
 
         if (socket.id !== room.ownerId) {
@@ -96,8 +96,10 @@ export function StartGameHandler(io, socket, rooms) {
 }
 
 export function SyncGameHandler(io, socket, rooms) {
+
     socket.on("sync-game", (roomId) => {
         const room = rooms.find(r => r.id === roomId);
+        if (room.gameType !== 'charades') return;
         if (room) {
             sendScoreUpdate(io, room);
 
@@ -122,6 +124,7 @@ export function SyncGameHandler(io, socket, rooms) {
 export function CheckCorrectAnswerHandler(io, socket, rooms) {
     socket.on("message", (data) => {
         const room = rooms.find(r => r.id === data.roomId);
+        if (room.gameType !== 'charades') return;
         if (!room || !room.isGameStarted) return;
         if (socket.id === room.drawingPlayerId) return;
         if (room.solvedBy && room.solvedBy.includes(socket.id)) return;

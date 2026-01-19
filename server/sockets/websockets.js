@@ -10,6 +10,8 @@ import {
     SyncGameHandler
 } from "./handlers/gameHandler.js";
 
+import { StartMusicGameHandler, CheckMusicAnswerHandler, SyncMusicGameHandler } from "./handlers/songgameHandler.js";
+
 const io = new IOServer(server, {
     cors: {
         origin: "*",
@@ -28,13 +30,17 @@ io.on("connection", (socket) => {
     // Room
     CreateRoom(socket, rooms, nicknames);
     JoinRoom(socket, rooms, nicknames);
-    LeaveRoom(socket, rooms, io); // Przekazujemy 'io' do LeaveRoom
+    LeaveRoom(socket, rooms, io);
 
     // Game
     RenderDrawing(socket);
     StartGameHandler(io, socket, rooms);
     CheckCorrectAnswerHandler(io, socket, rooms);
-    SyncGameHandler(io, socket, rooms); // NOWY HANDLER
+    SyncGameHandler(io, socket, rooms);
+
+    StartMusicGameHandler(io, socket, rooms);
+    CheckMusicAnswerHandler(io, socket, rooms);
+    SyncMusicGameHandler(io, socket, rooms);
 
     // Chat
     BroadcastMessage(socket, rooms, nicknames);

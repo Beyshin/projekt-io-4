@@ -1,25 +1,23 @@
 import { Room } from "../../models/room.js";
 import { AddPlayerToRoom, GenerateCode } from "../../services/roomService.js";
 import { Player } from "../../models/player.js";
-
-// Importujemy funkcję z gameHandler, aby zaktualizować listę graczy (z ikoną korony) przy zmianach
 import { sendScoreUpdate } from "./gameHandler.js";
 
 export function CreateRoom(socket, rooms, nicknames) {
     socket.on("create-room", (data) => {
         const nickname = nicknames[socket.id];
-        console.log(`User ${nickname} tworzy pokój.`);
+        const gameType = data.gameType || 'charades';
+        console.log(`User ${nickname} tworzy pokój ${gameType}.`);
 
         const id = GenerateCode();
-        // Czwarty argument to ownerId - ustawiamy twórcę jako właściciela
-        const room = new Room(id, "", [], socket.id);
+        const room = new Room(id, "", [], socket.id, gameType);
         rooms.push(room);
 
         const player = new Player(socket.id, nickname, 0, id);
         AddPlayerToRoom(room, player);
 
         socket.join(id);
-        socket.emit("room-joined", { roomId: id });
+        socket.emit("room-joined", { roomId: id, ownerId: socket.id, gameType: gameType});
     });
 }
 
@@ -36,7 +34,7 @@ export function JoinRoom(socket, rooms, nicknames) {
             console.log(`${username} dołączył do pokoju ${roomId}`);
 
             socket.to(roomId).emit("player-joined", { nickname: username });
-            socket.emit("room-joined", { roomId: roomId });
+            socket.emit("room-joined", { roomId: roomId, ownerId: socket.id, gameType: room.gameType });
         } else {
             socket.emit("room-not-found");
         }
@@ -58,18 +56,31 @@ export function LeaveRoom(socket, rooms, io) {
 
             socket.to(roomId).emit("player-left", { nickname: player.nickname });
 
-            if (socket.id === room.ownerId && room.players.length > 0) {
-                room.ownerId = room.players[0].id; // Nowym szefem pierwszy gracz z listy
+            if (room.players.length === 0) {
+                console.log(`Pokój ${roomId} jest pusty. Usuwanie...`);
+
+                if (room.timerInterval) {
+                    clearInterval(room.timerInterval);
+                }
+
+                const roomIndex = rooms.indexOf(room);
+                if (roomIndex !== -1) {
+                    rooms.splice(roomIndex, 1);
+                }
+
+                return;
+            }
+
+
+            if (socket.id === room.ownerId) {
+                room.ownerId = room.players[0].id;
                 console.log(`Nowym właścicielem pokoju ${roomId} jest ${room.players[0].nickname}`);
             }
 
             if (io) sendScoreUpdate(io, room);
         }
 
-        if (room.players.length === 0) {
-            const roomIndex = rooms.indexOf(room);
-            if (roomIndex !== -1) rooms.splice(roomIndex, 1);
-        }
+
     };
 
     socket.on("leave-room", (roomId) => handleLeave(roomId));

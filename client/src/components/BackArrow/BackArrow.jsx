@@ -8,6 +8,9 @@ function BackArrow(props){
     return (
         <button className={styles.backArrow} onClick={() => {
             socket.emit("leave-room", props.roomId)
+            if(props.callback){
+                props.callback();
+            }
             navigation("/select")
         }}>
             <img className={styles.arrowImage} src={backArrow} alt="go-back">

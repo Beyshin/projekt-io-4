@@ -26,5 +26,7 @@
     overflow: hidden;
 }
 
-.login_block{
+
+button, input, textarea, select {
+    font-family: inherit;
 }
