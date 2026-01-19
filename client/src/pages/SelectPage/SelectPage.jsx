@@ -28,7 +28,7 @@ function SelectPage() {
         socket.on("room-not-found", handleRoomNotFound);
 
         return () => {
-            socket.off("room-joined", handleRoomJoined);
+            socket.off("room-joined");
             socket.off("room-not-found", handleRoomNotFound);
         };
     }, [socket, navigate]);
