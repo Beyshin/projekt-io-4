@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "websockets": "node sockets/websockets.js",
-    "start": "node src/index.js"
+    "start": "node sockets/websockets.js"
   },
   "keywords": [],
   "author": "",

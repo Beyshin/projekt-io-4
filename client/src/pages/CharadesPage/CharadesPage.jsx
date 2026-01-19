@@ -246,7 +246,7 @@ function CharadesPage() {
                                 ) : (
                                     <>
                                         <span className={styles.label}>Current password</span>
-                                        <span className={styles.secretWord} style={{letterSpacing: '3px'}}>{hintWord}</span>
+                                        <span className={styles.secretWord} style={{letterSpacing: '3px', whiteSpace: 'pre-wrap'}}>{hintWord}</span>
                                         <span style={{fontSize: '0.8rem', color: '#aaa', marginTop: '5px'}}>Draws: {painterName}</span>
                                     </>
                                 )}

@@ -5,6 +5,7 @@ import TestPage from "../../pages/TestPage/TestPage";
 import SelectPage from "../../pages/SelectPage/SelectPage";
 import CharadesPage from "../../pages/CharadesPage/CharadesPage";
 import PageWrapper from "../PageWrapper/PageWrapper";
+import SongPage from "../../pages/SongPage/SongPage";
 
 export default function AnimatedRoutes() {
     const location = useLocation();
@@ -16,7 +17,7 @@ export default function AnimatedRoutes() {
                 <Route path="/test" element={<PageWrapper><TestPage /></PageWrapper>} />
                 <Route path="/select" element={<PageWrapper><SelectPage /></PageWrapper>} />
                 <Route path="/charades/:id" element={<PageWrapper><CharadesPage /></PageWrapper>} />
-
+                <Route path="/guess-song/:id" element={<PageWrapper><SongPage/></PageWrapper>}/>
             </Routes>
         </AnimatePresence>
     );

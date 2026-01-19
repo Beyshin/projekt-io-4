@@ -11,9 +11,14 @@ function SelectPage() {
     const socket = useSocket();
     const [roomId, setRoomId] = useState(null);
 
+
     useEffect(() => {
         socket.on("room-joined", (data) => {
-            navigate(`/charades/${data.roomId}`);
+            if (data.gameType === 'music') {
+                navigate(`/guess-song/${data.roomId}`);
+            } else {
+                navigate(`/charades/${data.roomId}`);
+            }
         })
 
         socket.on("room-not-found", (data) => {
@@ -33,8 +38,8 @@ function SelectPage() {
             <div className={styles.selectContainer}>
                 <h1 className={styles.textLarge}>CREATE A ROOM</h1>
                 <div className={styles.buttonContainer}>
-                    <GradientButton label="CHARADES" socket={socket} onClick={() => socket.emit("create-room")}></GradientButton>
-                    <GradientButton label="GUESS A SONG" onClick={() => console.log("GUESS A SONG")}></GradientButton>
+                    <GradientButton label="CHARADES" socket={socket} onClick={() => socket.emit("create-room", {gameType: 'charades'})}></GradientButton>
+                    <GradientButton label="GUESS A SONG" socket={socket} onClick={() => socket.emit("create-room", {gameType: 'music'})}></GradientButton>
                 </div>
             </div>
             <div className={styles.joinContainer}>
