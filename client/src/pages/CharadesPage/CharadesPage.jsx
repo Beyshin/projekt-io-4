@@ -150,6 +150,8 @@ function CharadesPage() {
         setLastPos([x2,y2])
     }
 
+
+
     const drawUser = (data) => {
         const canvas = canvasRef.current;
         if(!canvas) return;
@@ -191,6 +193,10 @@ function CharadesPage() {
         return `${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
+    const copyLink = async () =>{
+        await navigator.clipboard.writeText(`https://www.alexandria-pcz.com/charades/${id}`);
+    }
+
     return (
         <div className={styles.mainContainer}>
 
@@ -218,6 +224,7 @@ function CharadesPage() {
                 <div className={styles.gameInfoBar}>
                     {!gameActive ? (
                         <div className={styles.lobbyInfo}>
+                            {/*<button className={styles.copyBtn} onClick={copyLink}>COPY LINK</button>*/}
                             <h2>Room ID: {id}</h2>
                             {isOwner ? (
                                 <button className={styles.startBtn} onClick={startGame}>START</button>
@@ -259,6 +266,7 @@ function CharadesPage() {
                         onMouseMove={draw}
                         onMouseDown={() => setIsDrawing(true)}
                         onMouseUp={() => setIsDrawing(false)}
+                        onMouseLeave={() => setIsDrawing(false)}
                         ref={canvasRef}
                         className={styles.mainCanvas}>
                 </canvas>

@@ -4,8 +4,20 @@ const songs = [
     { title: "Billie Jean", artist:"Micheal Jackson", clue: "She was more like a beauty queen from a movie scene...",  country: "US" },
     { title: "Szklana Pogoda", artist: "Lombard", clue: "Szyby niebieskie od telewizorów...", country: "PL" },
     { title: "Parostatek", artist:"Krzysztof Krawczyk", clue: "Parostatkiem w piękny rejs...", country: "PL" },
-    {title: "Fear of the Dark", artist: "Iron Maiden", clue: "I have a constant fear that something's always near..."},
-    {title: 'Slow Burner', artist: "Interplanetary Criminal", clue: "Brak wskazówki"}
+    { title: "Fear of the Dark", artist: "Iron Maiden", clue: "I have a constant fear that something's always near..."},
+    { title: 'Slow Burner', artist: "Interplanetary Criminal", clue: "Brak wskazówki"},
+    { title: "Blinding Lights", artist:"The Weeknd", clue: "I said, ooh, I'm blinded by the lights...",  country: "US"},
+    { title: "Levitating", artist:"Dua Lipa", clue: "You want me, I want you, baby...",  country: "US" },
+    { title: "Rolling in the Deep", artist:"Adele", clue: "We could have had it all...",  country: "US" },
+    { title: "Dancing Queen", artist: "ABBA", clue: "You can dance, you can jive...", country: "SE" },
+    { title: "Hotel California", artist:"Eagles", clue: "You can check out any time you like, but you can never leave...", country: "US" },
+    {title: "Take On Me", artist: "a-ha", clue: "Take on me, take me on..."},
+    {title: "Bad Guy", artist: "Billie Eilish", clue: "So you're a tough guy..."},
+    {title: "The Sound of Silence", artist: "Simon & Garfunkel", clue: "In the shadows of the night..."},
+    {title: "Uptown Funk", artist: "Mark Ronson ft. Bruno Mars", clue: "Don't believe me just watch..."},
+    {title: "Co mi panie dasz", artist:"Bajm", clue: "Kilka starych szmat..", country: "PL" },
+    {title: "Jak gdyby nic", artist:"Kuban", clue: "Dolewam dolewam dolewam...", country: "PL" },
+
 ];
 
 export function generateRandomSong() {
@@ -23,23 +35,34 @@ export async function getSongData(){
         "entity": "song"
     });
 
-    const result = await fetch(`${BASE_URL}${searchParams}`,
-        {
-            method: "GET"
-        })
+    const result = await fetch(`${BASE_URL}${searchParams}`, { method: "GET" });
 
     if(result.ok){
         const data = await result.json();
-        const songUrl =  data.results[0].previewUrl;
-        console.log("Pobrano piosenke w service: " + songUrl);
+        let songUrl = "";
+        let albumCover = "";
+        let albumName = "";
+        let releaseYear = "";
+        let artistName = song.artist;
+
+        if(data.results.length > 0){
+            const track = data.results[0];
+            songUrl = track.previewUrl;
+            albumCover = track.artworkUrl100.replace("100x100bb", "600x600bb");
+            albumName = track.collectionName;
+            artistName = track.artistName;
+            releaseYear = track.releaseDate ? track.releaseDate.substring(0, 4) : "";
+        }
+
         return({
             title: song.title,
-            artist: song.artist,
+            artist: artistName,
+            album: albumName,
+            year: releaseYear,
             clue: song.clue,
-            songUrl: songUrl
-        })
+            songUrl: songUrl,
+            albumCover: albumCover
+        });
     }
-
     return null;
 }
-

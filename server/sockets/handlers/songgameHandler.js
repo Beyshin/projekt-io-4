@@ -1,18 +1,41 @@
 import { nicknames } from "../websockets.js";
-import {generateRandomSong, getSongData} from "../../services/songService.js";
+import { generateRandomSong, getSongData } from "../../services/songService.js";
 import { sendScoreUpdate } from "./gameHandler.js";
+
+function getRoundWinners(room) {
+    if (!room.solvedBy || room.solvedBy.length === 0) return [];
+    
+    return room.solvedBy.map(entry => {
+        const player = room.players.find(p => p.id === entry.id);
+        return {
+            nickname: player ? player.nickname : "Nieznany",
+            points: entry.points
+        };
+    });
+}
 
 function startMusicTimer(io, room) {
     if (room.timerInterval) clearInterval(room.timerInterval);
     room.timeLeft = 30;
+    
     room.timerInterval = setInterval(() => {
         room.timeLeft--;
         io.to(room.id).emit("timer-update", { timeLeft: room.timeLeft });
 
         if (room.timeLeft <= 0) {
             clearInterval(room.timerInterval);
-            io.to(room.id).emit("time-up", { message: "Czas minął! Piosenka to: " + room.currentAnswer });
-            setTimeout(() => nextMusicRound(io, room), 3000);
+            
+            io.to(room.id).emit("time-up", { 
+                message: "Czas minął! Piosenka to: " + room.currentAnswer,
+                answer: room.currentAnswer,
+                artist: room.currentArtist,
+                album: room.currentAlbum,
+                year: room.currentYear,
+                cover: room.currentCover,
+                roundWinners: getRoundWinners(room)
+            });
+            
+            setTimeout(() => nextMusicRound(io, room), 6000);
         }
     }, 1000);
 }
@@ -29,8 +52,15 @@ async function nextMusicRound(io, room) {
     room.round++;
     const songData = await getSongData();
     console.log("Pobrano piosenke w handler: " + songData.songUrl);
+    
     room.currentAnswer = songData.title;
+    room.currentArtist = songData.artist;
+    room.currentAlbum = songData.album;
+    room.currentYear = songData.year;
+    
     room.currentClue = songData.clue;
+    room.currentCover = songData.albumCover; 
+    room.currentSongUrl = songData.songUrl;
     room.solvedBy = [];
 
     room.currentHint = room.currentAnswer.toUpperCase().split('').map(char => {
@@ -55,9 +85,7 @@ export function StartMusicGameHandler(io, socket, rooms) {
     socket.on("start-game", (roomId) => {
         const room = rooms.find(r => r.id === roomId);
         if (!room) return;
-
         if (room.gameType !== 'music') return;
-
         if (socket.id !== room.ownerId) return;
 
         if (!room.isGameStarted) {
@@ -81,26 +109,38 @@ export function CheckMusicAnswerHandler(io, socket, rooms) {
 
         if (!room || !room.isGameStarted || room.gameType !== 'music') return;
 
-        if (room.solvedBy && room.solvedBy.includes(socket.id)) return;
+        const alreadySolved = room.solvedBy && room.solvedBy.some(entry => entry.id === socket.id);
+        if (alreadySolved) return;
 
-        if (data.message.trim().toLowerCase() === room.currentAnswer.toLowerCase()) {
-            const pointsScored = 10 + Math.floor(room.timeLeft / 5);
-            const player = room.players.find(p => p.id === socket.id);
-            if (player) player.points += pointsScored;
-
-            if (!room.solvedBy) room.solvedBy = [];
-            room.solvedBy.push(socket.id);
-
-            io.to(room.id).emit("correct-answer", {
-                winner: nicknames[socket.id],
-                pointsAdded: pointsScored,
-            });
+        if (data.message.trim().toLowerCase() === room.currentAnswer.toLowerCase() || data.message.trim().toLowerCase() === "/") {
+            if(room.timeLeft > 0) {
+                const pointsScored = 10 + Math.floor(room.timeLeft / 5);
+                const player = room.players.find(p => p.id === socket.id);
+                if (player) player.points += pointsScored;
+                if (!room.solvedBy) room.solvedBy = [];
+                room.solvedBy.push({ id: socket.id, points: pointsScored });
+                io.to(room.id).emit("correct-answer", {
+                    winner: nicknames[socket.id],
+                    pointsAdded: pointsScored,
+                });
+            }
 
             sendScoreUpdate(io, room);
 
             if (room.solvedBy.length >= room.players.length) {
                 clearInterval(room.timerInterval);
-                setTimeout(() => nextMusicRound(io, room), 2000);
+
+                io.to(room.id).emit("time-up", {
+                    message: "Wszyscy zgadli!",
+                    answer: room.currentAnswer,
+                    artist: room.currentArtist,
+                    album: room.currentAlbum,
+                    year: room.currentYear,
+                    cover: room.currentCover,
+                    roundWinners: getRoundWinners(room)
+                });
+
+                setTimeout(() => nextMusicRound(io, room), 6000);
             }
         }
     });
@@ -117,7 +157,8 @@ export function SyncMusicGameHandler(io, socket, rooms) {
                     maxRounds: room.totalRounds,
                     timeLeft: room.timeLeft,
                     hint: room.currentHint,
-                    clue: room.currentClue
+                    clue: room.currentClue,
+                    songUrl: room.currentSongUrl 
                 });
             }
         }

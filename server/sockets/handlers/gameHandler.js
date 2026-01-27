@@ -8,7 +8,7 @@ export function sendScoreUpdate(io, room) {
         points: p.points,
         isDrawer: p.id === room.drawingPlayerId,
         isOwner: p.id === room.ownerId
-    }));
+    })).sort((a, b) => b.points - a.points)
     io.to(room.id).emit("update-players", playerList);
 }
 
