@@ -69,6 +69,8 @@ function GuessSongPage() {
             if(songUrl) {
                 audioRef.current.src = songUrl;
                 audioRef.current.load();
+                audioRef.current.fastSeek(30-data.timeLeft);
+                setStarted(true);
                 audioRef.current.play().catch(e => {
                     console.warn("Autoplay blocked");
                 });
