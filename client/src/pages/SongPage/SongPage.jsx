@@ -26,9 +26,18 @@ function GuessSongPage() {
     const [clueText, setClueText] = useState("");
     const [started, setStarted] = useState(false);
 
-    const isOwner = players.find(p => p.id === socket?.id)?.isOwner || false;
+    // Stany animacji
+    const [showReveal, setShowReveal] = useState(false);
+    const [summary, setSummary] = useState({ 
+        title: "", cover: "", artist: "", album: "", year: "", roundWinners: [] 
+    });
 
-    const audioRef = useRef(null);
+    const isOwner = players.find(p => p.id === socket?.id)?.isOwner || false;
+    const audioRef = useRef(new Audio());
+
+    useEffect(() => {
+        audioRef.current.volume = 0.2;
+    }, []);
 
     useEffect(() => {
         if (!socket) return;
@@ -47,6 +56,9 @@ function GuessSongPage() {
         });
 
         socket.on("new-round", (data) => {
+            setShowReveal(false);
+            setClueText(""); 
+            setHintWord("");
             setGameActive(true);
             setRound(data.round);
             setMaxRounds(data.maxRounds);
@@ -54,42 +66,58 @@ function GuessSongPage() {
             if(audioRef.current) {
                 audioRef.current.pause();
             }
-            const songUrl = data.songUrl;
-            console.log("songUrl", songUrl);
-            const audio = new Audio(songUrl);
-            audio.volume = 0.2;
-            audio.play();
-            audioRef.current = audio;
 
+            const songUrl = data.songUrl;
+            if(songUrl) {
+                audioRef.current.src = songUrl;
+                audioRef.current.load();
+                audioRef.current.play().catch(e => {
+                    console.warn("Autoplay blocked");
+                });
+            }
 
             setTimeLeft(data.timeLeft || 30);
-
             setHintWord(data.hint || "");
             setClueText(data.clue || "");
 
             setMessages((prev) => [...prev, {
                 username: "SYSTEM",
-                message: `Runda ${data.round} / ${data.maxRounds}! Zgadnij piosenkę!`,
+                message: `Runda ${data.round} / ${data.maxRounds}!`,
                 type: "system"
             }]);
         });
 
         socket.on("update-players", (playerList) => setPlayers(playerList));
         socket.on("timer-update", (data) => setTimeLeft(data.timeLeft));
+        
         socket.on("time-up", (data) => {
-            audioRef.current.pause();
-            setMessages((prev) => [...prev, {username: "SYSTEM",message: data["message"], type: "system"}]);
+            if(audioRef.current) audioRef.current.pause();
+            
+            setSummary({ 
+                title: data.answer, 
+                cover: data.cover,
+                artist: data.artist,
+                album: data.album,
+                year: data.year,
+                roundWinners: data.roundWinners || [] 
+            });
+            
+            setShowReveal(true);
+            setMessages((prev) => [...prev, {username: "SYSTEM", message: data["message"], type: "system"}]);
         })
+
         socket.on("correct-answer", (data) => {
             setMessages((prev) => [...prev, {
                 username: "SUKCES",
-                message: `${data.winner} odgadł tytuł! (+${data.pointsAdded} pkt)`,
+                message: `${data.winner} zgadł! (+${data.pointsAdded} pkt)`,
                 type: "system"
             }]);
         });
 
         socket.on("game-over", (data) => {
-            audioRef.current.pause();
+            if(audioRef.current) {
+                audioRef.current.pause();
+            }
             setGameActive(false);
             setMessages((prev) => [...prev, {username: "SYSTEM", message: data.message, type: "system"}]);
         });
@@ -103,6 +131,7 @@ function GuessSongPage() {
             socket.off("player-joined");
             socket.off("player-left");
             socket.off("update-players");
+            socket.off("time-up");
         }
     }, [socket, id]);
 
@@ -114,12 +143,19 @@ function GuessSongPage() {
     }
 
     const startGame = () => {
+        if (audioRef.current) {
+            audioRef.current.play().then(() => {
+                audioRef.current.pause();
+            }).catch(() => {});
+        }
         setStarted(true);
         socket.emit("start-game", id);
     }
 
     const pauseSong = () => {
-        audioRef.current.pause();
+        if(audioRef.current){
+            audioRef.current.pause();
+        }
     }
 
     const formatTime = (seconds) => {
@@ -150,7 +186,6 @@ function GuessSongPage() {
             </div>
 
             <div className={styles.middleContainer}>
-                {/* Info Bar */}
                 <div className={styles.gameInfoBar}>
                     {!gameActive ? (
                         <div className={styles.lobbyInfo}>
@@ -183,19 +218,47 @@ function GuessSongPage() {
                     )}
                 </div>
 
-                <div className={styles.mainCanvas} style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    background: '#1a1a1a',
-                    color: '#00BFFF',
-                    fontSize: '2rem',
-                    textAlign: 'center',
-                    padding: '20px',
-                    border: '2px solid #444'
-                }}>
-                    {gameActive ? (
-                        <div style={{fontStyle: 'italic'}}>
+                <div className={styles.mainCanvas}>
+                    {showReveal ? (
+                        <div className={styles.revealContainer}>
+                            {/* --- LEWA STRONA: LISTA ZWYCIĘZCÓW --- */}
+                            <div className={styles.revealLeft}>
+                                <h3 className={styles.winnersTitle}>Najszybsi:</h3>
+                                <ul className={styles.winnersList}>
+                                    {summary.roundWinners.length > 0 ? (
+                                        summary.roundWinners.map((winner, index) => (
+                                            <li key={index} className={styles.winnerItem} style={{animationDelay: `${index * 0.1}s`}}>
+                                                <div style={{display:'flex', alignItems:'center'}}>
+                                                    <span className={styles.winnerRank}>
+                                                        {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}
+                                                    </span>
+                                                    <span className={styles.winnerName}>{winner.nickname}</span>
+                                                </div>
+                                                <span className={styles.winnerPoints}>+{winner.points}</span>
+                                            </li>
+                                        ))
+                                    ) : (
+                                        <li className={styles.noWinners}>Nikt nie zgadł...</li>
+                                    )}
+                                </ul>
+                            </div>
+
+                            {/* --- PRAWA STRONA: ALBUM INFO --- */}
+                            <div className={styles.revealRight}>
+                                {summary.cover && (
+                                    <img src={summary.cover} alt="Album Art" className={styles.revealImage} />
+                                )}
+                                <h2 className={styles.revealTitle}>{summary.title}</h2>
+                                <h3 className={styles.revealArtist}>{summary.artist}</h3>
+                                <div className={styles.revealMeta}>
+                                    <span className={styles.revealAlbum}>{summary.album}</span>
+                                    {summary.album && summary.year && <span className={styles.separator}>•</span>}
+                                    <span className={styles.revealYear}>{summary.year}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ) : gameActive ? (
+                        <div className={styles.clueText}>
                             "{clueText}"
                         </div>
                     ) : (
@@ -216,7 +279,7 @@ function GuessSongPage() {
                                 <span style={{color: '#FFD700', fontWeight: 'bold'}}>{data.message}</span>
                             ) : (
                                 <>
-                                    <span className={styles.chatUser}>{data.username}</span>: {data.message}
+                                    <span className={styles.chatUser}>{data.username}</span>:{data.message}
                                 </>
                             )}
                         </div>
