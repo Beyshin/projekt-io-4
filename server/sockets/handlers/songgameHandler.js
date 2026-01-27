@@ -1,5 +1,5 @@
 import { nicknames } from "../websockets.js";
-import { generateRandomSong, getSongData } from "../../services/songService.js";
+import { getShuffledPlaylist , getSongData } from "../../services/songService.js";
 import { sendScoreUpdate } from "./gameHandler.js";
 
 function getRoundWinners(room) {
@@ -50,7 +50,10 @@ async function nextMusicRound(io, room) {
     }
 
     room.round++;
-    const songData = await getSongData();
+
+
+    const nextSong = room.playlist.pop();
+    const songData = await getSongData(nextSong);
     console.log("Pobrano piosenke w handler: " + songData.songUrl);
     
     room.currentAnswer = songData.title;
@@ -89,6 +92,8 @@ export function StartMusicGameHandler(io, socket, rooms) {
         if (socket.id !== room.ownerId) return;
 
         if (!room.isGameStarted) {
+            room.playlist = getShuffledPlaylist();
+
             const playerCount = room.players.length;
             room.totalRounds = playerCount * 3;
             if(room.totalRounds === 0) room.totalRounds = 5;
@@ -112,7 +117,7 @@ export function CheckMusicAnswerHandler(io, socket, rooms) {
         const alreadySolved = room.solvedBy && room.solvedBy.some(entry => entry.id === socket.id);
         if (alreadySolved) return;
 
-        if (data.message.trim().toLowerCase() === room.currentAnswer.toLowerCase() || data.message.trim().toLowerCase() === "/") {
+        if (data.message.trim().toLowerCase() === room.currentAnswer.toLowerCase()) {
             if(room.timeLeft > 0) {
                 const pointsScored = 10 + Math.floor(room.timeLeft / 5);
                 const player = room.players.find(p => p.id === socket.id);
