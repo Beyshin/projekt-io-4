@@ -17,6 +17,7 @@ export class Room {
         this.timeLeft = 0;
         this.solvedBy = [];
 
+        this.passwordHistory = [];
         this.drawHistory = [];
         this.currentStroke = [];
     }

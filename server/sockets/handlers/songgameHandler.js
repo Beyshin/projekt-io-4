@@ -51,7 +51,6 @@ async function nextMusicRound(io, room) {
 
     room.round++;
 
-
     const nextSong = room.playlist.pop();
     const songData = await getSongData(nextSong);
     console.log("Pobrano piosenke w handler: " + songData.songUrl);

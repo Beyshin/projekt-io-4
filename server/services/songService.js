@@ -49,7 +49,7 @@ const songs = [
     {title: "Act A Fool", artist: "Ludacris", clue: "2 Fast 2 furious..."},
     {title: "Remember The Name", artist: "Fort Minor Styles Of Beyond", clue: "This is ten percent luck, twenty percent skill..."},
     {title: "The Next Episode", artist: "Dr. Dre ft. Snoop Dogg", clue: "Smoke weed every day..."},
-    {title: "Staright Outta Compton", artist: "N.W.A", clue: "AK-47 is the tool\nDon't make me act a motherfucking fool..."},
+    {title: "Straight Outta Compton", artist: "N.W.A", clue: "AK-47 is the tool\nDon't make me act a motherfucking fool..."},
     {title: "Gold Digger", artist: "Kanye West ft. Jamie Foxx", clue: "I ain't sayin' she a..."},
     {title: "Where The Hood At", artist: "DMX", clue: "D to the M to the X..."},
     {title: "Everyday", artist: "A$AP Rocky ft. Rod Stewart, Miguel, Mark Ronson", clue: "I spend my time drinking wine..."},
@@ -95,7 +95,7 @@ const songs = [
     {title: "Byłaś Dla mnie wszystkim", artist:"Poparzeni Kawą Trzy", clue:"Prezentem od losu...", country: "PL" }
 ];
 
-function shuffle(array) {
+export function shuffle(array) {
     let currentIndex = array.length;
     while (currentIndex !== 0) {
         let randomIndex = Math.floor(Math.random() * currentIndex);
