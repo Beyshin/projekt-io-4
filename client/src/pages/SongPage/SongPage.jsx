@@ -26,6 +26,7 @@ function GuessSongPage() {
     const [clueText, setClueText] = useState("");
     const [started, setStarted] = useState(false);
     const [showReveal, setShowReveal] = useState(false);
+    const [volume, setVolume] = useState(0.2);
     const [summary, setSummary] = useState({ 
         title: "", cover: "", artist: "", album: "", year: "", roundWinners: [] 
     });
@@ -34,8 +35,8 @@ function GuessSongPage() {
     const audioRef = useRef(new Audio());
 
     useEffect(() => {
-        audioRef.current.volume = 0.2;
-    }, []);
+        audioRef.current.volume = volume;
+    }, [volume]);
 
     useEffect(() => {
         if (!socket) return;
@@ -164,6 +165,11 @@ function GuessSongPage() {
         return `${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
+    const handleVolumeChange = (e) => {
+        const newVolume = parseFloat(e.target.value);
+        setVolume(newVolume);
+    };
+
     const copyLink = async () =>{
         await navigator.clipboard.writeText(`https://www.alexandria-pcz.com/guess-song/${id}`);
     }
@@ -173,6 +179,23 @@ function GuessSongPage() {
             <div className={styles.leftContainer}>
                 <div className={styles.upLeftContainer}>
                     <BackArrow roomId={id} callback={started ? pauseSong : null}></BackArrow>
+                    <div className={styles.volumeContainer}>
+                        <span className={styles.volumeIcon}>
+                          {volume === 0 ? "🔇" : volume < 0.5 ? "🔉" : "🔊"}
+                        </span>
+                                    <input
+                                        type='range'
+                                        min='0'
+                                        max='1'
+                                        step='0.01'
+                                        value={volume}
+                                        onChange={handleVolumeChange}
+                                        className={styles.volumeSlider}
+                                    />
+                                    <span className={styles.volumePercent}>
+                          {Math.round(volume * 100)}%
+                        </span>
+                    </div>
                     <div className={styles.scoreboardContainer}>
                         <h3 className={styles.scoreTitle}>Wyniki</h3>
                         <ul className={styles.playerList}>
