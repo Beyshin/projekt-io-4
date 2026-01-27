@@ -119,7 +119,7 @@ export function CheckMusicAnswerHandler(io, socket, rooms) {
 
         if (data.message.trim().toLowerCase() === room.currentAnswer.toLowerCase()) {
             if(room.timeLeft > 0) {
-                const pointsScored = 10 + Math.floor(room.timeLeft / 5);
+                const pointsScored = 10 * room.timeLeft;
                 const player = room.players.find(p => p.id === socket.id);
                 if (player) player.points += pointsScored;
                 if (!room.solvedBy) room.solvedBy = [];
