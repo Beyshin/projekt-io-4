@@ -2,7 +2,6 @@ import { nicknames } from "../websockets.js";
 import { generateRandomSong, getSongData } from "../../services/songService.js";
 import { sendScoreUpdate } from "./gameHandler.js";
 
-// Funkcja pomocnicza: mapuje obiekty {id, points} na {nickname, points}
 function getRoundWinners(room) {
     if (!room.solvedBy || room.solvedBy.length === 0) return [];
     
@@ -62,7 +61,7 @@ async function nextMusicRound(io, room) {
     room.currentClue = songData.clue;
     room.currentCover = songData.albumCover; 
     room.currentSongUrl = songData.songUrl;
-    room.solvedBy = []; // Reset tablicy
+    room.solvedBy = [];
 
     room.currentHint = room.currentAnswer.toUpperCase().split('').map(char => {
         return (char === ' ') ? '  ' : '_';
@@ -109,32 +108,29 @@ export function CheckMusicAnswerHandler(io, socket, rooms) {
         const room = rooms.find(r => r.id === data.roomId);
 
         if (!room || !room.isGameStarted || room.gameType !== 'music') return;
-        
-        // ZMIANA: Sprawdzamy czy ID jest w tablicy obiektów
+
         const alreadySolved = room.solvedBy && room.solvedBy.some(entry => entry.id === socket.id);
         if (alreadySolved) return;
 
         if (data.message.trim().toLowerCase() === room.currentAnswer.toLowerCase() || data.message.trim().toLowerCase() === "/") {
-            const pointsScored = 10 + Math.floor(room.timeLeft / 5);
-            const player = room.players.find(p => p.id === socket.id);
-            if (player) player.points += pointsScored;
-
-            if (!room.solvedBy) room.solvedBy = [];
-            
-            // ZMIANA: Zapisujemy obiekt z punktami
-            room.solvedBy.push({ id: socket.id, points: pointsScored });
-
-            io.to(room.id).emit("correct-answer", {
-                winner: nicknames[socket.id],
-                pointsAdded: pointsScored,
-            });
+            if(room.timeLeft > 0) {
+                const pointsScored = 10 + Math.floor(room.timeLeft / 5);
+                const player = room.players.find(p => p.id === socket.id);
+                if (player) player.points += pointsScored;
+                if (!room.solvedBy) room.solvedBy = [];
+                room.solvedBy.push({ id: socket.id, points: pointsScored });
+                io.to(room.id).emit("correct-answer", {
+                    winner: nicknames[socket.id],
+                    pointsAdded: pointsScored,
+                });
+            }
 
             sendScoreUpdate(io, room);
 
             if (room.solvedBy.length >= room.players.length) {
                 clearInterval(room.timerInterval);
-                
-                io.to(room.id).emit("time-up", { 
+
+                io.to(room.id).emit("time-up", {
                     message: "Wszyscy zgadli!",
                     answer: room.currentAnswer,
                     artist: room.currentArtist,
@@ -143,7 +139,7 @@ export function CheckMusicAnswerHandler(io, socket, rooms) {
                     cover: room.currentCover,
                     roundWinners: getRoundWinners(room)
                 });
-                
+
                 setTimeout(() => nextMusicRound(io, room), 6000);
             }
         }

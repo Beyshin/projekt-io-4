@@ -1,5 +1,3 @@
-import { title } from "process";
-
 const songs = [
     { title: "Bohemian Rhapsody", artist:"Queen", clue: "Mama, just killed a man...",  country: "US"},
     { title: "Shape of You", artist:"Ed Sheeran", clue: "The club isn't the best place to find a lover...",  country: "US" },
@@ -45,17 +43,15 @@ export async function getSongData(){
         let albumCover = "";
         let albumName = "";
         let releaseYear = "";
-        let artistName = song.artist; // Domyślnie z naszej listy
+        let artistName = song.artist;
 
         if(data.results.length > 0){
             const track = data.results[0];
             songUrl = track.previewUrl;
             albumCover = track.artworkUrl100.replace("100x100bb", "600x600bb");
-            
-            // Pobieramy dodatkowe dane z iTunes
             albumName = track.collectionName;
-            artistName = track.artistName; // Lepsza nazwa artysty prosto z iTunes
-            releaseYear = track.releaseDate ? track.releaseDate.substring(0, 4) : ""; // Wyciągamy tylko rok (np. 2023)
+            artistName = track.artistName;
+            releaseYear = track.releaseDate ? track.releaseDate.substring(0, 4) : "";
         }
 
         return({

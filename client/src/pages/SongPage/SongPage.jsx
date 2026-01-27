@@ -25,8 +25,6 @@ function GuessSongPage() {
     const [hintWord, setHintWord] = useState("");
     const [clueText, setClueText] = useState("");
     const [started, setStarted] = useState(false);
-
-    // Stany animacji
     const [showReveal, setShowReveal] = useState(false);
     const [summary, setSummary] = useState({ 
         title: "", cover: "", artist: "", album: "", year: "", roundWinners: [] 
@@ -164,6 +162,10 @@ function GuessSongPage() {
         return `${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
+    const copyLink = async () =>{
+        await navigator.clipboard.writeText(`https://www.alexandria-pcz.com/guess-song/${id}`);
+    }
+
     return (
         <div className={styles.mainContainer}>
             <div className={styles.leftContainer}>
@@ -189,6 +191,7 @@ function GuessSongPage() {
                 <div className={styles.gameInfoBar}>
                     {!gameActive ? (
                         <div className={styles.lobbyInfo}>
+                            {/*<button className={styles.copyBtn} onClick={copyLink}>COPY LINK</button>*/}
                             <h2>Pokój: {id}</h2>
                             {isOwner ? (
                                 <button className={styles.startBtn} onClick={startGame}>START</button>
@@ -221,7 +224,6 @@ function GuessSongPage() {
                 <div className={styles.mainCanvas}>
                     {showReveal ? (
                         <div className={styles.revealContainer}>
-                            {/* --- LEWA STRONA: LISTA ZWYCIĘZCÓW --- */}
                             <div className={styles.revealLeft}>
                                 <h3 className={styles.winnersTitle}>Najszybsi:</h3>
                                 <ul className={styles.winnersList}>
@@ -243,7 +245,6 @@ function GuessSongPage() {
                                 </ul>
                             </div>
 
-                            {/* --- PRAWA STRONA: ALBUM INFO --- */}
                             <div className={styles.revealRight}>
                                 {summary.cover && (
                                     <img src={summary.cover} alt="Album Art" className={styles.revealImage} />
