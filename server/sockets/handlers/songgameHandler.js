@@ -1,8 +1,7 @@
 import { nicknames } from "../websockets.js";
-import { generateRandomSong, getSongData } from "../../services/songService.js";
+import { getShuffledPlaylist, getSongDataFromObject } from "../../services/songService.js";
 import { sendScoreUpdate } from "./gameHandler.js";
 
-// Funkcja pomocnicza: mapuje obiekty {id, points} na {nickname, points}
 function getRoundWinners(room) {
     if (!room.solvedBy || room.solvedBy.length === 0) return [];
     
@@ -42,6 +41,11 @@ function startMusicTimer(io, room) {
 }
 
 async function nextMusicRound(io, room) {
+    // Jeśli lista piosenek w pokoju się skończyła, napełniamy ją od nowa
+    if (!room.playlist || room.playlist.length === 0) {
+        room.playlist = getShuffledPlaylist();
+    }
+
     if (room.round >= room.totalRounds) {
         clearInterval(room.timerInterval);
         io.to(room.id).emit("game-over", { message: "Koniec gry!" });
@@ -51,18 +55,21 @@ async function nextMusicRound(io, room) {
     }
 
     room.round++;
-    const songData = await getSongData();
+    
+    // Pobieramy piosenkę z góry listy (zdejmujemy ją, by się nie powtórzyła)
+    const nextSong = room.playlist.pop();
+    const songData = await getSongDataFromObject(nextSong);
+    
     console.log("Pobrano piosenke w handler: " + songData.songUrl);
     
     room.currentAnswer = songData.title;
     room.currentArtist = songData.artist;
     room.currentAlbum = songData.album;
     room.currentYear = songData.year;
-    
     room.currentClue = songData.clue;
     room.currentCover = songData.albumCover; 
     room.currentSongUrl = songData.songUrl;
-    room.solvedBy = []; // Reset tablicy
+    room.solvedBy = [];
 
     room.currentHint = room.currentAnswer.toUpperCase().split('').map(char => {
         return (char === ' ') ? '  ' : '_';
@@ -85,11 +92,12 @@ async function nextMusicRound(io, room) {
 export function StartMusicGameHandler(io, socket, rooms) {
     socket.on("start-game", (roomId) => {
         const room = rooms.find(r => r.id === roomId);
-        if (!room) return;
-        if (room.gameType !== 'music') return;
-        if (socket.id !== room.ownerId) return;
+        if (!room || room.gameType !== 'music' || socket.id !== room.ownerId) return;
 
         if (!room.isGameStarted) {
+            // Przy starcie gry generujemy playlistę dla tego konkretnego pokoju
+            room.playlist = getShuffledPlaylist();
+            
             const playerCount = room.players.length;
             room.totalRounds = playerCount * 3;
             if(room.totalRounds === 0) room.totalRounds = 5;
@@ -107,10 +115,8 @@ export function StartMusicGameHandler(io, socket, rooms) {
 export function CheckMusicAnswerHandler(io, socket, rooms) {
     socket.on("message", (data) => {
         const room = rooms.find(r => r.id === data.roomId);
-
         if (!room || !room.isGameStarted || room.gameType !== 'music') return;
         
-        // ZMIANA: Sprawdzamy czy ID jest w tablicy obiektów
         const alreadySolved = room.solvedBy && room.solvedBy.some(entry => entry.id === socket.id);
         if (alreadySolved) return;
 
@@ -120,8 +126,6 @@ export function CheckMusicAnswerHandler(io, socket, rooms) {
             if (player) player.points += pointsScored;
 
             if (!room.solvedBy) room.solvedBy = [];
-            
-            // ZMIANA: Zapisujemy obiekt z punktami
             room.solvedBy.push({ id: socket.id, points: pointsScored });
 
             io.to(room.id).emit("correct-answer", {
