@@ -9,6 +9,12 @@ import {ReactComponent as CornerR} from "../../assets/svg/corner-right.svg";
 import {useParams} from "react-router-dom";
 import styles from "./SongPage.module.css";
 
+const SpeakerIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+    </svg>
+);
+
 function GuessSongPage() {
     const {id} = useParams();
     const inputRef = useRef(null)
@@ -21,6 +27,7 @@ function GuessSongPage() {
     const [maxRounds, setMaxRounds] = useState(5);
     const [timeLeft, setTimeLeft] = useState(30);
     const [players, setPlayers] = useState([]);
+    const [isAudioBlocked, setIsAudioBlocked] = useState(false);
 
     const [hintWord, setHintWord] = useState("");
     const [clueText, setClueText] = useState("");
@@ -61,6 +68,7 @@ function GuessSongPage() {
             setGameActive(true);
             setRound(data.round);
             setMaxRounds(data.maxRounds);
+            setIsAudioBlocked(false);
 
             if(audioRef.current) {
                 audioRef.current.pause();
@@ -70,11 +78,29 @@ function GuessSongPage() {
             if(songUrl) {
                 audioRef.current.src = songUrl;
                 audioRef.current.load();
-                audioRef.current.fastSeek(30-data.timeLeft);
+
+                const roundDuration = 30;
+                const timeElapsed = roundDuration - data.timeLeft;
+
+                if (timeElapsed > 0) {
+                    audioRef.current.currentTime = timeElapsed;
+                } else {
+                    audioRef.current.currentTime = 0;
+                }
+
                 setStarted(true);
-                audioRef.current.play().catch(e => {
-                    console.warn("Autoplay blocked");
-                });
+
+                const playPromise = audioRef.current.play();
+                if (playPromise !== undefined) {
+                    playPromise
+                        .then(() => {
+                            setIsAudioBlocked(false);
+                        })
+                        .catch(e => {
+                            console.warn("Autoplay blocked:", e);
+                            setIsAudioBlocked(true);
+                        });
+                }
             }
 
             setTimeLeft(data.timeLeft || 30);
@@ -174,27 +200,35 @@ function GuessSongPage() {
         await navigator.clipboard.writeText(`https://www.alexandria-pcz.com/guess-song/${id}`);
     }
 
+    const handleManualPlay = () => {
+        if (audioRef.current) {
+            audioRef.current.play()
+                .then(() => setIsAudioBlocked(false))
+                .catch(e => console.error("Nadal błąd odtwarzania:", e));
+        }
+    };
+
     return (
         <div className={styles.mainContainer}>
             <div className={styles.leftContainer}>
                 <div className={styles.upLeftContainer}>
                     <BackArrow roomId={id} callback={started ? pauseSong : null}></BackArrow>
                     <div className={styles.volumeContainer}>
-                        <span className={styles.volumeIcon}>
-                          {volume === 0 ? "🔇" : volume < 0.5 ? "🔉" : "🔊"}
-                        </span>
-                                    <input
-                                        type='range'
-                                        min='0'
-                                        max='1'
-                                        step='0.01'
-                                        value={volume}
-                                        onChange={handleVolumeChange}
-                                        className={styles.volumeSlider}
-                                    />
-                                    <span className={styles.volumePercent}>
-                          {Math.round(volume * 100)}%
-                        </span>
+                    <span className={styles.volumeIcon}>
+                      {volume === 0 ? "🔇" : volume < 0.5 ? "🔉" : "🔊"}
+                    </span>
+                                <input
+                                    type='range'
+                                    min='0'
+                                    max='1'
+                                    step='0.01'
+                                    value={volume}
+                                    onChange={handleVolumeChange}
+                                    className={styles.volumeSlider}
+                                />
+                                <span className={styles.volumePercent}>
+                      {Math.round(volume * 100)}%
+                    </span>
                     </div>
                     <div className={styles.scoreboardContainer}>
                         <h3 className={styles.scoreTitle}>Wyniki</h3>
@@ -247,6 +281,34 @@ function GuessSongPage() {
                 </div>
 
                 <div className={styles.mainCanvas}>
+                    {isAudioBlocked && !showReveal && (
+                        <div style={{
+                            position: 'absolute',
+                            zIndex: 100,
+                            top: 0, left: 0, right: 0, bottom: 0,
+                            background: 'rgba(0,0,0,0.7)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            backdropFilter: 'blur(5px)',
+                            borderRadius: '10px'
+                        }}>
+                            <p style={{color: 'white', marginBottom: '15px'}}>Przeglądarka zablokowała dźwięk</p>
+                            <button
+                                onClick={handleManualPlay}
+                                style={{
+                                    background: '#ff4757', color: 'white', border: 'none',
+                                    padding: '12px 24px', borderRadius: '50px',
+                                    fontSize: '1.2rem', cursor: 'pointer', fontWeight: 'bold',
+                                    display: 'flex', alignItems: 'center', gap: '10px'
+                                }}
+                            >
+                                <SpeakerIcon /> ODTWÓRZ
+                            </button>
+                        </div>
+                    )}
+
                     {showReveal ? (
                         <div className={styles.revealContainer}>
                             <div className={styles.revealLeft}>
