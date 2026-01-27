@@ -1,5 +1,5 @@
 import { nicknames } from "../websockets.js";
-import {generateRandomAnswer, normalizeAnswer} from "../../services/charadeService.js";
+import {generateRandomAnswer, normalizeAnswer, shufflePasswords} from "../../services/charadeService.js";
 
 export function sendScoreUpdate(io, room) {
     const playerList = room.players.map(p => ({
@@ -38,9 +38,9 @@ function nextRound(io, room) {
     }
 
     room.round++;
-    room.currentAnswer = generateRandomAnswer();
+    room.currentAnswer = room.passwords.pop();
     room.solvedBy = [];
-
+    room.drawHistory = [];
 
     const wordUpper = room.currentAnswer.toUpperCase();
     room.currentHint = wordUpper.split('').map((char, index) => {
@@ -48,7 +48,6 @@ function nextRound(io, room) {
         if (index === 0) return char;
         return '_';
     }).join(' ');
-
 
     const painterIndex = (room.round - 1) % room.players.length;
     const painter = room.players[painterIndex];
@@ -87,6 +86,7 @@ export function StartGameHandler(io, socket, rooms) {
 
             room.isGameStarted = true;
             room.round = 0;
+            room.passwords = shufflePasswords();
             room.players.forEach(p => p.points = 0);
 
             console.log(`Start w pokoju ${roomId}. Rundy: ${room.totalRounds}`);
@@ -96,13 +96,11 @@ export function StartGameHandler(io, socket, rooms) {
 }
 
 export function SyncGameHandler(io, socket, rooms) {
-
     socket.on("sync-game", (roomId) => {
         const room = rooms.find(r => r.id === roomId);
         if (room.gameType !== 'charades') return;
         if (room) {
             sendScoreUpdate(io, room);
-
             if (room.isGameStarted) {
                 socket.emit("new-round", {
                     round: room.round,
@@ -112,7 +110,6 @@ export function SyncGameHandler(io, socket, rooms) {
                     timeLeft: room.timeLeft,
                     hint: room.currentHint
                 });
-
                 if (socket.id === room.drawingPlayerId) {
                     socket.emit("secret-word", { word: room.currentAnswer });
                 }

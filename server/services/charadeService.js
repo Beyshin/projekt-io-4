@@ -1,12 +1,14 @@
-
+import {shuffle} from './songService.js'
 let answers = ["pies", "kot", "lampa", "żyrafa", "balon", "parasol", "kaskader", "pirat", "samochód", "motocykl", "samolot", "czołg", "morderca", "pistolet", "superman", "dom", "latarka", "pająk", "statek", "morze", "góry",
-   "sztaluga", "kosmita", "wilkołak", "zombie", "matematyka", "salon gier", "słoń", "bałwan", "małpa", "mario", "brachiozaur", "jabłko", "truskawka", "wiśnia", "porzeczka"
-]
+   "sztaluga", "kosmita", "wilkołak", "zombie", "matematyka", "słoń", "bałwan", "małpa", "mario", "brachiozaur", "jabłko", "truskawka", "wiśnia", "porzeczka"]
 
 export function generateRandomAnswer(){
     return answers[Math.floor(Math.random() * answers.length)];
 }
 
+export function shufflePasswords(){
+    return shuffle(answers);
+}
 
 export function normalizeAnswer(msg){
 
