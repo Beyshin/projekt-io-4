@@ -1,5 +1,5 @@
 import { nicknames } from "../websockets.js";
-import { getShuffledPlaylist, getSongDataFromObject } from "../../services/songService.js";
+import { generateRandomSong, getSongData } from "../../services/songService.js";
 import { sendScoreUpdate } from "./gameHandler.js";
 
 function getRoundWinners(room) {
@@ -41,11 +41,6 @@ function startMusicTimer(io, room) {
 }
 
 async function nextMusicRound(io, room) {
-    // Jeśli lista piosenek w pokoju się skończyła, napełniamy ją od nowa
-    if (!room.playlist || room.playlist.length === 0) {
-        room.playlist = getShuffledPlaylist();
-    }
-
     if (room.round >= room.totalRounds) {
         clearInterval(room.timerInterval);
         io.to(room.id).emit("game-over", { message: "Koniec gry!" });
@@ -55,17 +50,14 @@ async function nextMusicRound(io, room) {
     }
 
     room.round++;
-    
-    // Pobieramy piosenkę z góry listy (zdejmujemy ją, by się nie powtórzyła)
-    const nextSong = room.playlist.pop();
-    const songData = await getSongDataFromObject(nextSong);
-    
+    const songData = await getSongData();
     console.log("Pobrano piosenke w handler: " + songData.songUrl);
     
     room.currentAnswer = songData.title;
     room.currentArtist = songData.artist;
     room.currentAlbum = songData.album;
     room.currentYear = songData.year;
+    
     room.currentClue = songData.clue;
     room.currentCover = songData.albumCover; 
     room.currentSongUrl = songData.songUrl;
@@ -92,12 +84,11 @@ async function nextMusicRound(io, room) {
 export function StartMusicGameHandler(io, socket, rooms) {
     socket.on("start-game", (roomId) => {
         const room = rooms.find(r => r.id === roomId);
-        if (!room || room.gameType !== 'music' || socket.id !== room.ownerId) return;
+        if (!room) return;
+        if (room.gameType !== 'music') return;
+        if (socket.id !== room.ownerId) return;
 
         if (!room.isGameStarted) {
-            // Przy starcie gry generujemy playlistę dla tego konkretnego pokoju
-            room.playlist = getShuffledPlaylist();
-            
             const playerCount = room.players.length;
             room.totalRounds = playerCount * 3;
             if(room.totalRounds === 0) room.totalRounds = 5;
@@ -115,24 +106,13 @@ export function StartMusicGameHandler(io, socket, rooms) {
 export function CheckMusicAnswerHandler(io, socket, rooms) {
     socket.on("message", (data) => {
         const room = rooms.find(r => r.id === data.roomId);
+
         if (!room || !room.isGameStarted || room.gameType !== 'music') return;
-        
 
         const alreadySolved = room.solvedBy && room.solvedBy.some(entry => entry.id === socket.id);
         if (alreadySolved) return;
 
         if (data.message.trim().toLowerCase() === room.currentAnswer.toLowerCase() || data.message.trim().toLowerCase() === "/") {
-            const pointsScored = 10 + Math.floor(room.timeLeft / 5);
-            const player = room.players.find(p => p.id === socket.id);
-            if (player) player.points += pointsScored;
-
-            if (!room.solvedBy) room.solvedBy = [];
-            room.solvedBy.push({ id: socket.id, points: pointsScored });
-
-            io.to(room.id).emit("correct-answer", {
-                winner: nicknames[socket.id],
-                pointsAdded: pointsScored,
-            });
             if(room.timeLeft > 0) {
                 const pointsScored = 10 + Math.floor(room.timeLeft / 5);
                 const player = room.players.find(p => p.id === socket.id);
